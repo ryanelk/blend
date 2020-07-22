@@ -125,8 +125,23 @@ function shuffle(tbl)
  return tbl
 end
 
-function can_move(p,pdx,pdy)
- return false
+function bound_collide(p)
+	if (p.x+p.dx>121
+	 or p.x+p.dx<-1
+  or p.y+p.dy>121 
+  or p.y+p.dy<-1) then
+  return true
+ end
+ return false 
+end
+
+function oasis_collide(p)
+ -- if p within o area
+ return true
+end
+
+function enemy_collide(p)
+ return true
 end
 -->8
 -- player
@@ -161,36 +176,29 @@ function player_update()
  -- max speed
  p.dx=mid(-p.xspd,p.dx,p.xspd)
  p.dy=mid(-p.yspd,p.dy,p.yspd)
-
- -- collision checks
- -- bound_check(p)
- --enemy_check(p)
- --oasis_check(p)
-
- -- check if movement is possible
- if (can_move(p,p.dx,p.dy)) then
+ 
+ oasis_hit=oasis_collide(p)
+ if (oasis_hit) then
+  -- game over
+ end
+ 
+ bound_hit=bound_collide(p)
+ if (bound_hit) then
+  printh("canmove")
+  p.x=mid(-1,p.x+p.dx,121)
+  p.y=mid(-1,p.y+p.dy,121)
+ else
+  printh("cant")
   p.x+=p.dx
   p.y+=p.dy
-
- else
-  dis_dx=p.dx
-  dis_dy=p.dy
-
-  while (false) do
-   if (abs(dis_dx)<=0.1) then
-    dis_dx=0
-   else
-    dis_dx*=0.9
-   end
-   if (abs(dis_dy)<=0.1) then
-    dis_dy=0
-   else
-    dis_dy*=0.9
-   end
-  end
-
-  p.x+=dis_dx
-  p.y+=dis_dy 
+ end
+ 
+ enemy_hit=enemy_collide(p)
+ if (enemy_hit) then
+  -- swap enemy color
+  -- two way bump
+  -- change enemy state to chase
+  
  end
 
  -- apply drag
@@ -227,7 +235,7 @@ function e_draw()
 
 end
 -->8
--- environment
+-- oasis
 
 function env_update()
  // increase rad of circle
@@ -248,47 +256,45 @@ function init_oasis()
  o.y=flr(rnd(20))+43
  o.rad=1
  o.grow=.3
- o.cld=false
  o.col=game.col[1]
+ o.s_anim=100
+ o.s_anim_spd=6
+ o.s_rad=0
+ o.active=true
  add(os,o)
 end
 
 function o_draw(o)
- circfill(o.x,o.y,o.rad,o.col)
+ if (o.s_anim > 0) then
+  circfill(o.x,o.y,o.s_rad,0)
+ else
+  circfill(o.x,o.y,o.rad,o.col)
+ end
 end
 
 function o_update(o)
- o.rad+=o.grow*game.speed
+ if (o.s_anim > 0) then
+  o.s_anim-=1
+  if (o.s_anim%o.s_anim_spd==1) then
+   o.s_rad=o.s_anim%5
+  end
+ else
+  o.rad+=o.grow*game.speed
+ end
 end
 
 function o_chk(o)
- if (o.rad>140 and not o.cld) then
+ if (o.rad>140 and o.active) then
   game.speed+=.05
   del(game.col,o.col)
-  o.cld=true
+  o.active=false
   init_oasis()
   add(game.col,o.col)
  end
- if (o.rad>300) del(os,o)
+ if (o.rad>400 and not o.active) then
+  del(os,o)
+ end
  
-end
-
-function chk_bnd(o)
- if (chk_p_x(o) or chk_p_y(o)) then
-  for e in all(es) do
-   chk_e(o,e)
-  end
- end 
-end
-
-function chk_p_x(o)
- return p_x+game.min_d<o.x or
-  p_x-game.min_d>o.x
-end
-
-function chk_p_y(o)
- return (p_y+game.min_d<o.y or
-  p_y-game.min_d>o.y)
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
