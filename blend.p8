@@ -44,7 +44,7 @@ end
 function _draw()
  cls()
  map(0,0)
- palt(0, true)
+ palt(7, true)
  palt(8,false)
  if (game.state=="title") then
   title_draw()
@@ -108,6 +108,8 @@ function init_col()
  col_tbl = {}
  for i=1,12 do add(col_tbl,i)
  end
+ del(col_tbl,7)
+ del(col_tbl,8)
  for i in all(col_tbl) do
   printh(i)
  end
@@ -142,6 +144,15 @@ end
 
 function enemy_collide(p)
  return true
+end
+
+function set_quadrant(o,p)
+ if (p.x<60) then o.x=60
+ else o.x=30 
+ end
+ if (p.y<60) then o.y=60
+ else o.y=30
+ end 
 end
 -->8
 -- player
@@ -184,11 +195,9 @@ function player_update()
  
  bound_hit=bound_collide(p)
  if (bound_hit) then
-  printh("canmove")
   p.x=mid(-1,p.x+p.dx,121)
   p.y=mid(-1,p.y+p.dy,121)
  else
-  printh("cant")
   p.x+=p.dx
   p.y+=p.dy
  end
@@ -252,8 +261,9 @@ end
 
 function init_oasis()
  local o = {}
- o.x=flr(rnd(20))+43
- o.y=flr(rnd(20))+43
+ set_quadrant(o,p)
+ o.x=flr(rnd(30))+o.x
+ o.y=flr(rnd(30))+o.y
  o.rad=1
  o.grow=.3
  o.col=game.col[1]
@@ -266,7 +276,7 @@ end
 
 function o_draw(o)
  if (o.s_anim > 0) then
-  circfill(o.x,o.y,o.s_rad,0)
+  circfill(o.x,o.y,o.s_rad,o.col)
  else
   circfill(o.x,o.y,o.rad,o.col)
  end
