@@ -104,15 +104,18 @@ end
 -->8
 -- misc functions
 
+function calc_dist2(x1,y1,x2,y2)
+ local x_sqr=x2-x1
+ local y_sqr=y2-y1
+ return x_sqr*x_sqr+y_sqr*y_sqr
+end
+
 function init_col()
  col_tbl = {}
  for i=1,12 do add(col_tbl,i)
  end
  del(col_tbl,7)
  del(col_tbl,8)
- for i in all(col_tbl) do
-  printh(i)
- end
  return shuffle(col_tbl)
 end
 
@@ -120,9 +123,6 @@ function shuffle(tbl)
  for i=#tbl, 2, -1 do
   local j = flr(rnd(i))+1
   tbl[i],tbl[j]=tbl[j],tbl[i]
- end
- for i in all(tbl) do
-  printh(i)
  end
  return tbl
 end
@@ -137,9 +137,18 @@ function bound_collide(p)
  return false 
 end
 
-function oasis_collide(p)
- -- if p within o area
- return true
+function oasis_collide(p,o)
+ if (o!=nil) then
+	 -- if p within o area
+	 local dist2 = 
+	 calc_dist2(o.x,o.y,p.x,p.y)
+	 if (dist2 < (o.rad*o.rad)) then
+	  printh("inside")
+	  return true
+	 end
+	 printh("outside")
+	 return false
+	end
 end
 
 function enemy_collide(p)
@@ -188,12 +197,12 @@ function player_update()
  p.dx=mid(-p.xspd,p.dx,p.xspd)
  p.dy=mid(-p.yspd,p.dy,p.yspd)
  
- oasis_hit=oasis_collide(p)
+ oasis_hit=oasis_collide(p,os[#os])
  if (oasis_hit) then
   -- game over
  end
  
- bound_hit=bound_collide(p)
+ bound_hit=bound_collide(p,es)
  if (bound_hit) then
   p.x=mid(-1,p.x+p.dx,121)
   p.y=mid(-1,p.y+p.dy,121)
