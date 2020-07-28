@@ -16,14 +16,18 @@ end
 
 function game_init()
  game.state="title"
- game.frm_cnt=0
+ game.frm=0
  game.speed=1
  game.rad=60
  game.col=init_col()
+ game.frm_rate=60
+ map(0,0)
+ palt(8,true)
+ palt(0,true)
 end
 
 function _update60()
- game.frm_cnt+=1
+ game.frm+=1
  if (game.state=="title") then
   title_update()
   player_update()
@@ -37,15 +41,14 @@ function _update60()
   enemy_update()
   env_update()
  elseif (game.state=="end") then
+  env_update()
+  enemy_update()
   end_update()
  end
 end
 
 function _draw()
  cls()
- map(0,0)
- palt(7, true)
- palt(8,false)
  if (game.state=="title") then
   title_draw()
   env_draw()
@@ -59,6 +62,8 @@ function _draw()
   enemy_draw()
   player_draw()
  elseif (game.state=="end") then
+  env_draw()
+  enemy_draw()
   end_draw()
  end
 end
@@ -101,6 +106,43 @@ function reset()
 end
 -->8
 -- draw library
+
+-- player draw
+function player_draw()
+ pal()
+ pal(7,p.col[7])
+ spr(1,p.x,p.y)
+ pal()
+ pal(8,p.col[6])
+ spr(3,p.x,p.y)
+ pal()
+ pal(8,p.col[4])
+ spr(4,p.x,p.y)
+ pal()
+ pal(8,p.col[2])
+ spr(5,p.x,p.y)
+ 
+ -- fill corrupted sprites
+ if (p.corrupted) then
+  -- calculate spr
+  cor_frm=corrupt_frame()
+  if (cor_frm>0) then
+   pal()
+   pal(8,p.col[5])
+   spr3=p.spr_lrg[cor_frm]
+   spr(spr3,p.x,p.y)
+   pal()
+   pal(8,p.col[3])
+   spr2=p.spr_med[cor_frm]
+   spr(spr2,p.x,p.y)
+   pal()
+   pal(8,p.col[1])
+   spr1=p.spr_sml[cor_frm]
+   spr(spr1,p.x,p.y)
+   
+  end
+ end
+end
 -->8
 -- misc functions
 
@@ -143,10 +185,10 @@ function oasis_collide(p,o)
 	 local dist2 = 
 	 calc_dist2(o.x,o.y,p.x,p.y)
 	 if (dist2 < (o.rad*o.rad)) then
-	  printh("inside")
+	  --printh("inside")
 	  return true
 	 end
-	 printh("outside")
+	 --printh("outside")
 	 return false
 	end
 end
@@ -163,6 +205,24 @@ function set_quadrant(o,p)
  else o.y=30
  end 
 end
+
+function check_corrupt(obj,o_col)
+ for x=1,#obj.col-1 do
+  if (obj.col[x]!=o_col) then
+   return false
+  end
+ end
+ return true
+end
+
+function corrupt_frame()
+ count=game.frm%game.frm_rate*2 
+ if (count<game.frm_rate/2) then
+  return 1
+ else
+  return 2
+ end
+end
 -->8
 -- player
 
@@ -177,6 +237,13 @@ function player_init()
  p.yspd=32
  p.acc=1
  p.drg=0.01
+ p.col={0,0,0,0,0,0,7}
+ p.spr_sml={6,7}
+ p.spr_med={8,9}
+ p.spr_lrg={10,11}
+ p.core=nil
+ p.corrupted=false
+ p.corrupt_frm=0
 
 end
 
@@ -199,13 +266,48 @@ function player_update()
  
  oasis_hit=oasis_collide(p,os[#os])
  if (oasis_hit) then
-  -- game over
+  -- start corruption
+  if (p.core==nil) then
+   p.core={}
+   p.corrupted=true 
+   p.core.col=os[#os].col
+   p.core.stg=1
+   p.col[p.core.stg]=p.core.col
+   p.core.stg+=1
+   p.col[p.core.stg]=p.core.col
+  end
  end
  
- bound_hit=bound_collide(p,es)
+ -- increment corruption
+ if (p.corrupted) then
+  p.corrupt_frm+=1
+  show=p.corrupt_frm%game.frm_rate==0
+  if (show) then
+   if(p.corrupted and 
+	  check_corrupt(p,os[#os].col)) then
+	 -- freeze all motor functions
+	 -- game over
+    p.col[#p.col]=p.core.col
+    game.state="end"
+   end
+   
+   if (p.core.stg<6) then
+    p.core.stg+=1
+    p.col[p.core.stg]=p.core.col
+    p.core.stg+=1
+    p.col[p.core.stg]=p.core.col
+
+ 	 end
+  end
+  
+ end
+ 
+ bound_hit=bound_collide(p)
  if (bound_hit) then
+  -- stop at wall
   p.x=mid(-1,p.x+p.dx,121)
   p.y=mid(-1,p.y+p.dy,121)
+  
  else
   p.x+=p.dx
   p.y+=p.dy
@@ -229,16 +331,22 @@ function player_update()
  
 end
 
-function player_draw()
- spr(1,p.x,p.y)
-end
+
 
 
 -->8
 -- enemy
+e_n_type={1,2,3,4,5}
+e_c_type={1,2,3,4,5}
+e_base_spd=1
+
+-- different types spawn
+e_dif=1
 
 function enemy_update()
  -- update enemy position
+ 
+ -- do
 end
 
 function enemy_draw()
@@ -246,7 +354,10 @@ function enemy_draw()
 end
 
 function e_init()
-
+ -- determine enemy position
+ -- determine enemy neutral t
+ -- determine enemy col
+ -- determine enemy chase t
 end
 
 function e_draw()
@@ -316,10 +427,11 @@ function o_chk(o)
  
 end
 __gfx__
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000008888000800008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700080000800088880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000080000800088880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000080000800088880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700080000800088880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000008888000800008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000007777007700007700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000070000707000000700888800000000000000000000000000000000000000000000000000000808000080800000000000000000000000000000000000
+00700700700000070000000008888880008888000000000000000000000000000008080000808000008888800888880000000000000000000000000000000000
+00077000700000070000000008888880008888000008800000008000000800000088800000088800088888000088888000000000000000000000000000000000
+00077000700000070000000008888880008888000008800000080000000080000008880000888000008888800888880000000000000000000000000000000000
+00700700700000070000000008888880008888000000000000000000000000000080800000080800088888000088888000000000000000000000000000000000
+00000000070000707000000700888800000000000000000000000000000000000000000000000000008080000008080000000000000000000000000000000000
+00000000007777007700007700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
